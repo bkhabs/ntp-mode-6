@@ -22,16 +22,23 @@
        </address>
     </author>
 
-    <date month="March" year="2018" />
+    <date month="July" year="2018" />
 
     <abstract>
-      <t>This document describes the structure of the control messages used
-      with the Network Time Protocol. These control messages can be used to
+      <t>This document describes the structure of the control messages that were
+      historically used
+      with the Network Time Protocol before the advent of more modern control and
+      management approaches. These control messages have been used to
       monitor and control the Network Time Protocol application running on any
       IP network attached computer. The information in this document
       was originally described in Appendix B of RFC 1305. The goal of this
-      document is to provide a historic description of the control messages as
+      document is to provide a current, but historic, description of the control messages as
       described in RFC 1305 and any additional commands implemented in NTP.</t>
+
+      <t>The publication of this document is not meant to encourage the developement
+      and deployment of these control messages. This document is only providing a
+      current reference for these control messages given the current status of RFC
+      1305.</t>
     </abstract>
 
   </front>
@@ -49,6 +56,11 @@
       <xref target="RFC5905" />. The control messages are described here as a
       historical record given their use within NTPv4.</t>
 
+      <t>The publication of this document is not meant to encourage the developement
+      and deployment of these control messages. This document is only providing a
+      current reference for these control messages given the current status of RFC
+      1305.</t>
+
       <section title="Control Message Overview">
 
         <t>The NTP Control Message has the value 6 specified in the mode field
@@ -65,7 +77,8 @@
         and are not included in the field count.</t>
 
         <t>IP hosts are not required to reassemble datagrams larger than 576
-        octets; however, some commands or responses may involve more data than
+        octets <xref target="RFC0791" />; however, some commands or responses may
+        involve more data than
         will fit into a single datagram. Accordingly, a simple reassembly
         feature is included in which each octet of the message data is numbered
         starting with zero. As each fragment is transmitted the number of its
@@ -75,20 +88,21 @@
 
         <t>Most control functions involve sending a command and receiving a
         response, perhaps involving several fragments. The sender chooses a
-        distinct, nonzero sequence number and sets the status field and R and E
+        distinct, nonzero sequence number and sets the status field and "R" and "E"
         bits to zero. The responder interprets the opcode and additional
-        information in the data field, updates the status field, sets the R bit
+        information in the data field, updates the status field, sets the "R" bit
         to one and returns the three 32-bit words of the header along with
         additional information in the data field. In case of invalid message
         format or contents the responder inserts a code in the status field,
-        sets the R and E bits to one and, optionally, inserts a diagnostic
+        sets the "R" and "E" bits to one and, optionally, inserts a diagnostic
         message in the data field.</t>
 
-        <t>Some commands read or write system variables and peer variables for
+        <t>Some commands read or write system variables (e.g., s.offset) and peer
+        variables (e.g., p.stratum) for
         an association identified in the command. Others read or write variables
         associated with a radio clock or other device directly connected to a
         source of primary synchronization information. To identify which type of
-        variable and association a 16-bit association identifier is used. System
+        variable and association the Association ID is used. System
         variables are indicated by the identifier zero. As each association is
         mobilized a unique, nonzero identifier is created for it. These
         identifiers are used in a cyclic fashion, so that the chance of using an
@@ -530,11 +544,13 @@
       prefixes can be suppressed.
       Whitespace (ASCII nonprinting format effectors) can be added to improve
       readability for simple monitoring programs that do not reformat the data
-      field. Internet addresses are represented as four octets in the form
-      [n.n.n.n], where n is in decimal notation and the brackets are optional.
+      field. Internet addresses are represented as follows: IPv4 addresses
+      are written in the form [n.n.n.n], where n is in decimal notation and
+      the brackets are optional; IPv6 addresses are formulated based on the
+      guidelines defined in <xref target="RFC5952" />.
       Timestamps, including reference, originate, receive and transmit values,
       as well as the logical clock, are represented in units of seconds and
-      fractions, preferably in hexadecimal notation, while delay, offset,
+      fractions, preferably in hexadecimal notation. Delay, offset,
       dispersion and distance values are represented in units of milliseconds
       and fractions, preferably in decimal notation. All other values are
       represented as-is, preferably in decimal notation.</t>
@@ -649,7 +665,7 @@
       64-bit NTP timestamp and 32 bits of hash derived from that timestamp,
       the remote address, and salt known only to the server which varies
       between daemon runs.  The reference implementation honors nonces
-      which were issued less than 16 seconds prior.  Regurgitation of the
+      which were issued less than 16 seconds prior.  Inclusion of the
       nonce by a managment agent demonstrates to the server that the agent
       can receive datagrams sent to the source address of the request,
       making source address "spoofing" more difficult in a similar way as
@@ -689,7 +705,7 @@
          which exhibit such behavior, to perform DDoS attacks. These off-path attacks
          exploit the large size of NTP control queries to cause UDP-based
          amplification attacks (e.g., mode 7 monlist command generates a very long
-         packet in response to a small query (CVE-2013-5211)). These attacks only
+         packet in response to a small query <xref target="CVE-DOS" />). These attacks only
          use NTP as a vector for DoS atacks on other protocols, but do not affect
          the time service on the NTP host itself. To limit the sources of these
          malicious commands, NTP server operators are recommended to deploy ingress
@@ -707,31 +723,36 @@
             timestamp field in the corresponding server response packet matches the xmt peer
             variable, then the client accepts the packet. An off-path attacker, with the ability
             to read this variable can easily spoof server response packets for the client, which
-            will pass TEST2, and can deny service or shift time on the NTP client. CVE-2015-8139
-            describes the specific attack.</t>
+            will pass TEST2, and can deny service or shift time on the NTP client. The specific
+            attack is described in <xref target="CVE-SPOOF" />.</t>
 
             <t>The client also stores its local time when the server response is received in its
             rec peer variable. This variable is used for authentication in interleaved-pivot mode.
             An off-path attacker with the ability to read this state variable can easily shift time
-            on the client by passing this test. CVE-2016-1548 describes the attack.</t>
+            on the client by passing this test. This attack is described in <xref target="CVE-SHIFT" />.</t>
          </list></t>
 
          <t>Fast-Scanning. NTP mode 6 control messages are usually small UDP packets. Fast-scanning
          tools like ZMap can be used to spray the entire (potentially reachable) Internet with these
          messages within hours to identify vulnerable hosts. To make things worse, these attacks can
          be extremely low-rate, only requiring a control query for reconnaissance and a spoofed
-         response to shift time on vulnerable clients. CVE-2016-1548 is one such example.</t>
+         response to shift time on vulnerable clients.</t>
+
+         <t>The mode 6 and 7 messages are vulnerable to replay attacks <xref target="CVE-Replay" />.
+         If an attacker observes mode 6/7 packets that modify the configuration of the server in any
+         way, the attacker can apply the same change at any time later simply by sending the packets
+         to the server again.</t>
 
       </list></t>
 
       <t>NTP best practices recommend configuring ntpd with the no-query parameter. The no-query
-      parameter blocks access to all remote control queries. However, sometimes the nosts do not
+      parameter blocks access to all remote control queries. However, sometimes the hosts do not
       want to block all queries and want to give access for certain control queries remotely. This
       could be for the purpose of remote management and configuration of the hosts in certain
       scenarios. Such hosts tend to use firewalls or other middleboxes to blacklist certain queries
       within the network.</t>
 
-      <t>Recent work (reference needed) shows that significantly fewer hosts respond to mode 7
+      <t>Significantly fewer hosts respond to mode 7
       monlist queries as compared to other control queries because it is a well-known and exploited
       control query. These queries are likely blocked using blacklists on firewalls and middleboxes
       rather than the no-query option on NTP hosts. The remaining control queries that can be
@@ -740,7 +761,9 @@
 
       <t>This document describes all of the mode 6 control queries allowed by NTP and can help
       administrators make informed decisions on security measures to protect NTP devices from
-      harmful queries and likely make those systems less vulnerable.</t>
+      harmful queries and likely make those systems less vulnerable. Regardless of which mode
+      6 commands an administrator elect to allow, remote access to this facility needs to be
+      protected from unauthorized access (e.g., strict ACLs).</t>
     </section>
 
     <section title="Contributors">
@@ -753,6 +776,8 @@
       Malhotra provided the initial version of the Security Considerations section.</t>
       <t>Karen O'Donoghue, David Hart, Harlan Stenn, and Philip Chimento deserve credit
       for portions of this document due to their earlier efforts to document these commands.</t>
+      <t>Miroshav Lichvar, Ulrich Windl, Dieter Sibold, J Ignacio Alvarez-Hamelin, and Alex Campbell
+      provided valuable comments on various versions of this document.</t>
     </section>
   </middle>
 
@@ -761,7 +786,48 @@
     <references title="Normative References">
       <?rfc include="reference.RFC.1305"?>
       <?rfc include="reference.RFC.5905"?>
+      <?rfc include="reference.RFC.5952"?>
       <?rfc include="reference.RFC.2827"?>
+    </references>
+
+    <references title="Informative References">
+      <?rfc include="reference.RFC.0791"?>
+      <reference anchor="CVE-SHIFT">
+         <front>
+            <title>CVE-2016-1548, https://nvd.nist.gov/vuln/detail/CVE-2016-1548</title>
+            <author>
+               <organization>NIST National Vulnerability Database</organization>
+            </author>
+            <date month="January" year="2017" day="06" />
+         </front>
+      </reference>
+      <reference anchor="CVE-SPOOF">
+         <front>
+            <title>CVE-2015-8139, https://nvd.nist.gov/vuln/detail/CVE-2015-8139</title>
+            <author>
+               <organization>NIST National Vulnerability Database</organization>
+            </author>
+            <date month="January" year="2017" day="30" />
+         </front>
+      </reference>
+      <reference anchor="CVE-Replay">
+         <front>
+            <title>CVE-2015-8140, https://nvd.nist.gov/vuln/detail/CVE-2015-8140</title>
+            <author>
+               <organization>NIST National Vulnerability Database</organization>
+            </author>
+            <date month="January" year="2015" day="30" />
+         </front>
+      </reference>
+      <reference anchor="CVE-DOS">
+         <front>
+            <title>CVE-2013-5211, https://nvd.nist.gov/vuln/detail/CVE-2013-5211</title>
+            <author>
+               <organization>NIST National Vulnerability Database</organization>
+            </author>
+            <date month="January" year="2014" day="02" />
+         </front>
+      </reference>
     </references>
 
     <section anchor="mode7" title="NTP Remote Facility Message Format">
